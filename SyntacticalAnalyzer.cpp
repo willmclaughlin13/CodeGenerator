@@ -1,6 +1,3 @@
-//
-// Created by Will on 12/5/2019.
-//
 /*******************************************************************************
 * File name: SyntacticalAnalyzer.cpp                                           *
 * Project: CS 460 Project 2 Fall 2019                                          *
@@ -23,12 +20,14 @@ const static string tokenNames[] = {"LAMBDA", "IDENT_T", "NUMLIT_T", "STRLIT_T",
                                     "ELSE_T", "PLUS_T", "MINUS_T", "DIV_T", "MULT_T", "EQUALTO_T", "GT_T", "LT_T", "GTE_T",
                                     "LTE_T", "LPAREN_T", "RPAREN_T", "SQUOTE_T", "ERROR_T", "EOF_T", "MAX_TOKENS"};
 
+CodeGen CODE("test.ss");
+
 SyntacticalAnalyzer::SyntacticalAnalyzer (char * filename)
 {
 
     lex = new LexicalAnalyzer (filename);
     string filenameStr = filename;
-    code = new CodeGen (filenameStr);
+    //code = new CodeGen (filenameStr);
 
     int filenameStrLength = filenameStr.length();
 
@@ -99,6 +98,7 @@ int SyntacticalAnalyzer::program ()
     }
 
     p2 << "Exiting Program function; current token is: " << tokenNames[token] << endl;
+
     return errors;
 }
 
@@ -161,10 +161,12 @@ int SyntacticalAnalyzer::define ()
     }
 
     if(token == IDENT_T){
-        code->WriteCode(0, "TEST");
-        //code->WriteCode(0, cppString = "Object " + lex->GetLexeme() + "()\n");
+        if (lex->GetLexeme() == "main")
+            CODE.WriteCode(0, cppString = "main " + lex->GetLexeme() + " ()\n");
+        else
+            CODE.WriteCode(0, cppString = "Object " + lex->GetLexeme() + " ()\n");
         token = lex->GetToken();
-        //code->WriteCode(0, cppString = "Object " + lex->GetLexeme() + "()\n");
+
     } else {
         errors++;
         lex->ReportError("Ident expected, got: " + tokenNames[token]);
@@ -173,17 +175,22 @@ int SyntacticalAnalyzer::define ()
     errors += param_list();
 
     if(token == RPAREN_T){
+        CODE.WriteCode(0, cppString = "{\n");
+        CODE.WriteCode(1, cppString = "Object __RetVal;\n");
         token = lex->GetToken();
     } else {
         errors++;
         lex->ReportError(") expected, got: " + tokenNames[token]);
     }
 
+    CODE.WriteCode(1, cppString = "__RetVal = ");
     errors += stmt();
 
     errors += stmt_list();
 
     if(token == RPAREN_T){
+        CODE.WriteCode(1, cppString = "return __RetVal;\n");
+        CODE.WriteCode(0, cppString = "}\n\n");
         token = lex->GetToken();
     } else {
         errors++;
@@ -219,6 +226,7 @@ int SyntacticalAnalyzer::stmt ()
 {
     p2 << "Entering Stmt function; current token is: " << tokenNames[token] << ", lexeme: " << lex->GetLexeme() << endl;;
     int errors = 0;
+
     if(token == IDENT_T){
         p2 << "Using Rule 8\n";
         token = lex->GetToken();
@@ -424,6 +432,7 @@ int SyntacticalAnalyzer::action ()
     p2 << "Entering Action function; current token is: " << tokenNames[token] << ", lexeme: " << lex->GetLexeme() << endl;;
     int errors = 0;
 
+    //CODE.WriteCode(1, cppString = "__RetVal = " + lex->GetLexeme() + "\n");
     if(token == IF_T) {
         p2 << "Using Rule 24\n";
         token = lex->GetToken();
@@ -445,11 +454,13 @@ int SyntacticalAnalyzer::action ()
 
     } else if(token == LISTOP1_T){
         p2 << "Using Rule 26\n";
+        CODE.WriteCode(0, cppString = lex->GetLexeme() + ' ');
         token = lex->GetToken();
         errors += stmt();
 
     } else if(token == LISTOP2_T){
         p2 << "Using Rule 27\n";
+        CODE.WriteCode(0, cppString = lex->GetLexeme() + ' ');
         token = lex->GetToken();
         errors += stmt();
         errors += stmt();
@@ -724,6 +735,5 @@ int SyntacticalAnalyzer::any_other_token ()
     p2 << "Exiting Any_Other_Token function; current token is: " << tokenNames[token] << endl;
     return errors;
 }
-
 
 
