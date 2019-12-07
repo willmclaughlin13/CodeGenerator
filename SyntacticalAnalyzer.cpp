@@ -27,6 +27,7 @@ SyntacticalAnalyzer::SyntacticalAnalyzer (char * filename)
 
 	lex = new LexicalAnalyzer (filename);
 	string filenameStr = filename;
+	parentCount = 0;
 	//code = new CodeGen (filenameStr);
 
 	int filenameStrLength = filenameStr.length();
@@ -84,6 +85,7 @@ int SyntacticalAnalyzer::program ()
 	errors += define();
 
 	if(token == LPAREN_T){
+
 		token = lex->GetToken();
 	} else {
 		errors++;
@@ -91,6 +93,7 @@ int SyntacticalAnalyzer::program ()
 	}
 
 	errors += more_defines();
+
 
 	if(token != EOF_T){
 		errors++;
@@ -190,6 +193,7 @@ int SyntacticalAnalyzer::define ()
 
 	errors += stmt();
 
+	// This is at the end of a statement line.
 	errors += stmt_list();
 
 	if(token == RPAREN_T){
@@ -219,7 +223,8 @@ int SyntacticalAnalyzer::stmt_list ()
 		errors += stmt();
 		errors += stmt_list();
 	} else if (token == RPAREN_T){
-		CODE.WriteCode(0, ";\n"); // Semicolon end of line
+		parentCount = 0;
+		//CODE.WriteCode(0, ";\n"); // Semicolon end of line
 		p2 << "Using Rule 6\n";
 	} else {
 		errors++;
@@ -241,14 +246,17 @@ int SyntacticalAnalyzer::stmt ()
 	} else if(token == SQUOTE_T || token == NUMLIT_T || token == STRLIT_T){
 		p2 << "Using Rule 7\n";
 		errors += literal();
-	} else if(token == LPAREN_T){
 
+	} else if(token == LPAREN_T){
+		parentCount++;
 		p2 << "Using Rule 9\n";
 		token = lex->GetToken();
 
 		errors += action();
 		if(token == RPAREN_T){
+			parentCount--;
 			token = lex->GetToken();
+
 		} else {
 			errors++;
 			lex->ReportError(") expected, got: " + tokenNames[token]);
@@ -285,7 +293,9 @@ int SyntacticalAnalyzer::literal ()
 		errors++;
 		lex->ReportError("Expected a literal value, got: " + tokenNames[token]);
 	}
-	CODE.WriteCode(0, ")");
+
+
+	//CODE.WriteCode(0, ")");
 	//CODE.WriteCode(0, "\n");
 	//CODE.WriteCode(4, "");
 	p2 << "Exiting Literal function; current token is: " << tokenNames[token] << endl;
@@ -329,16 +339,29 @@ int SyntacticalAnalyzer::more_tokens ()
 	token == EQUALTO_T || token == GT_T || token == LT_T || token == GTE_T ||
 	token == LTE_T || token == SQUOTE_T || token == COND_T || token == ELSE_T){
 		p2 << "Using Rule 14\n";
+		if (token == LPAREN_T) // Balance parenthesis!
+			parentCount++;
+
 		errors += any_other_token();
 		CODE.WriteCode(0, " ");
 		errors += more_tokens();
 	} else if(token == RPAREN_T){
-		CODE.WriteCode(0, ")\") ");
+		CODE.WriteCode(0, ")\") )"); // End of every listop?
+		parentCount--;
+		if (parentCount == 0)
+			CODE.WriteCode(0, "); \n");
+		else {
+			CODE.WriteCode(0, ", \n");
+			CODE.WriteCode(4, "");
+		}
+		//CODE.WriteCode(4, ""); // This is in between listops
+
 		p2 << "Using Rule 15\n";
 	} else {
 		errors++;
 		lex->ReportError("Quoted lit expected, got: " + tokenNames[token]);
 	}
+
 	p2 << "Exiting More_Tokens function; current token is: " << tokenNames[token] << endl;
 	return errors;
 }
@@ -584,6 +607,7 @@ int SyntacticalAnalyzer::action ()
 
     } else if(token == IDENT_T){
         p2 << "Using Rule 47\n";
+				CODE.WriteCode(0, lex->GetLexeme() + "();\n");
         token = lex->GetToken();
         errors += stmt_list();
 
