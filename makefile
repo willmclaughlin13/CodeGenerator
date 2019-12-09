@@ -29,6 +29,8 @@ submit : Project3.cpp LexicalAnalyzer.h SyntacticalAnalyzer.h SyntacticalAnalyze
 	cp Project3.cpp TeamNameP3
 	cp SyntacticalAnalyzer.h TeamNameP3
 	cp SyntacticalAnalyzer.cpp TeamNameP3
+	cp CodeGenerator.h TeamNameP3
+	cp CodeGenerator.cpp TeamNameP3
 	cp makefile TeamNameP3
 	cp README.txt TeamNameP3
 	tar cfvz TeamNameP3.tgz TeamNameP3
