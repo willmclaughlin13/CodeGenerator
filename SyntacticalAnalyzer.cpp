@@ -224,7 +224,8 @@ int SyntacticalAnalyzer::stmt_list ()
 		errors += stmt();
 		errors += stmt_list();
 	} else if (token == RPAREN_T){
-		parenCount = 0;
+		//cout << "\n Cleared Paren count!\n\n";
+		//parenCount = 0;
 		p2 << "Using Rule 6\n";
 	} else {
 		errors++;
@@ -248,13 +249,11 @@ int SyntacticalAnalyzer::stmt ()
 		errors += literal();
 
 	} else if(token == LPAREN_T){
-		//parenCount++;
 		p2 << "Using Rule 9\n";
 		token = lex->GetToken();
 
 		errors += action();
 		if(token == RPAREN_T){
-			//parenCount--;
 			token = lex->GetToken();
 
 		} else {
@@ -329,7 +328,6 @@ int SyntacticalAnalyzer::quoted_lit ()
 	}
 
 	CODE.WriteCode(0, "\") ");
-	//parenCount--;
 
 	p2 << "Exiting Quoted_Lit function; current token is: " << tokenNames[token] << endl;
 	return errors;
@@ -348,8 +346,10 @@ int SyntacticalAnalyzer::more_tokens ()
 	token == EQUALTO_T || token == GT_T || token == LT_T || token == GTE_T ||
 	token == LTE_T || token == SQUOTE_T || token == COND_T || token == ELSE_T){
 		p2 << "Using Rule 14\n";
-		if (token == LPAREN_T) // Balance parenthesis!
-			parenCount++;
+		if (token == LPAREN_T) { // Balance parenthesis!
+			//parenCount++;
+			//p2 << "++ inside more_tokens!\n";
+		}
 
 		errors += any_other_token();
 		CODE.WriteCode(0, " "); // Drop a space between elements of a list
@@ -357,6 +357,7 @@ int SyntacticalAnalyzer::more_tokens ()
 	} else if(token == RPAREN_T){
 		CODE.WriteCode(0, ")"); // End of every listop?
 		parenCount--;
+		p2 << "-- inside more_tokens!\n";
 		/*if (parenCount == 0)
 			CODE.WriteCode(0, "); \n"); // When the parentheses are balanced, we done
 		else {
@@ -647,12 +648,12 @@ int SyntacticalAnalyzer::any_other_token ()
     if (token == LPAREN_T){
         p2 << "Using Rule 50\n";
 				parenCount++;
+				p2 << "++ inside any_other_token!\n";
 				CODE.WriteCode(0, lex->GetLexeme());
         token = lex->GetToken();
         errors += more_tokens();
 
         if(token == RPAREN_T){
-						//CODE.WriteCode(0, lex->GetLexeme());
             token = lex->GetToken();
         } else {
             errors++;
