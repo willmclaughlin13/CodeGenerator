@@ -39,7 +39,7 @@ class SyntacticalAnalyzer
 	int stmt_pair_body ();
 	int action ();
 	int any_other_token ();
-  int parentCount; // This is when we're inside a statement that heas
+  int parenCount; // This is when we're inside a statement that has
                    // nested statements and we want a comma
 	ofstream listing;
 	ofstream p2;
