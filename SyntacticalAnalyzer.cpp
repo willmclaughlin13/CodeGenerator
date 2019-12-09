@@ -19,13 +19,10 @@ const static string tokenNames[] = {"LAMBDA", "IDENT_T", "NUMLIT_T", "STRLIT_T",
 	"ELSE_T", "PLUS_T", "MINUS_T", "DIV_T", "MULT_T", "EQUALTO_T", "GT_T", "LT_T", "GTE_T",
 	"LTE_T", "LPAREN_T", "RPAREN_T", "SQUOTE_T", "ERROR_T", "EOF_T", "MAX_TOKENS"};
 
-CodeGen CODE("test.ss"); // I am initializing this global. It should really be done
-												 // in the scope of the class. I tried and failed.
-
 SyntacticalAnalyzer::SyntacticalAnalyzer (char * filename)
-{
-
+{	
 	lex = new LexicalAnalyzer (filename);
+	code = new CodeGen (filename);
 	string filenameStr = filename;
 	parenCount = 0;
 	//code = new CodeGen (filenameStr); // This seems like the proper way to do it, but
@@ -65,6 +62,7 @@ SyntacticalAnalyzer::SyntacticalAnalyzer (char * filename)
 SyntacticalAnalyzer::~SyntacticalAnalyzer ()
 {
 	delete lex;
+	delete code;
 	listing.close();
 	p2.close();
 	debug.close();
@@ -167,11 +165,11 @@ int SyntacticalAnalyzer::define ()
 
 	if(token == IDENT_T){
         if (lex->GetLexeme() == "main") {
-            CODE.WriteCode(0, "int " + lex->GetLexeme() + " ()\n"); // This is
+            code->WriteCode(0, "int " + lex->GetLexeme() + " ()\n"); // This is
 																	// the edge case where the function is main()
 						mainFunc = true;
         } else {
-            CODE.WriteCode(0, "Object " + lex->GetLexeme() + " ()\n"); // Write
+            code->WriteCode(0, "Object " + lex->GetLexeme() + " ()\n"); // Write
 																							// Function name
 						mainFunc = false;
 				}
@@ -183,8 +181,8 @@ int SyntacticalAnalyzer::define ()
 	}
 
 	errors += param_list();
-	CODE.WriteCode(0, "{\n"); // Beginning of a new function
-	CODE.WriteCode(1, "Object __RetVal;\n");
+	code->WriteCode(0, "{\n"); // Beginning of a new function
+	code->WriteCode(1, "Object __RetVal;\n");
 	if(token == RPAREN_T){
 		token = lex->GetToken();
 	} else {
@@ -199,10 +197,10 @@ int SyntacticalAnalyzer::define ()
 
 	if(token == RPAREN_T){
 				if (mainFunc)
-					CODE.WriteCode(1, "return 0;\n"); // When it's main, we return int
+					code->WriteCode(1, "return 0;\n"); // When it's main, we return int
 				else
-        	CODE.WriteCode(1, "return __RetVal;\n"); // Otherwise, return __RetVal
-        CODE.WriteCode(0, "}\n\n"); // Close function
+        	code->WriteCode(1, "return __RetVal;\n"); // Otherwise, return __RetVal
+        code->WriteCode(0, "}\n\n"); // Close function
 		token = lex->GetToken();
 	} else {
 		errors++;
@@ -275,17 +273,17 @@ int SyntacticalAnalyzer::literal ()
     p2 << "Entering Literal function; current token is: " << tokenNames[token] << ", lexeme: " << lex->GetLexeme() << endl;;
 	int errors = 0;
 	if(token == NUMLIT_T){
-		CODE.WriteCode(0, "Object(" + lex->GetLexeme() + ")"); // numberino
+		code->WriteCode(0, "Object(" + lex->GetLexeme() + ")"); // numberino
 		p2 << "Using Rule 10\n";
 		token = lex->GetToken();
 	}
 	else if(token == STRLIT_T){
-		CODE.WriteCode(0, "Object(" + lex->GetLexeme() + ")"); // string
+		code->WriteCode(0, "Object(" + lex->GetLexeme() + ")"); // string
 		p2 << "Using Rule 11\n";
 		token = lex->GetToken();
 	}
 	else if(token == SQUOTE_T){
-		CODE.WriteCode(0, "Object(\""); // indicates a list?
+		code->WriteCode(0, "Object(\""); // indicates a list?
 		p2 << "Using Rule 12\n";
 		token = lex->GetToken();
 		errors += quoted_lit();
@@ -297,10 +295,10 @@ int SyntacticalAnalyzer::literal ()
 
 	cout << "\nParen: " << parenCount << endl;
 	if (parenCount == 0)
-		CODE.WriteCode(0, "; \n"); // When the parentheses are balanced, we done
+		code->WriteCode(0, "; \n"); // When the parentheses are balanced, we done
 	else {
-		CODE.WriteCode(0, ", \n"); // When the are not balanced, little comma
-		CODE.WriteCode(4, ""); // Big indent
+		code->WriteCode(0, ", \n"); // When the are not balanced, little comma
+		code->WriteCode(4, ""); // Big indent
 	}
 
 	p2 << "Exiting Literal function; current token is: " << tokenNames[token] << endl;
@@ -327,7 +325,7 @@ int SyntacticalAnalyzer::quoted_lit ()
 		lex->ReportError("Quoted lit expected, got: " + tokenNames[token]);
 	}
 
-	CODE.WriteCode(0, "\") ");
+	code->WriteCode(0, "\") ");
 
 	p2 << "Exiting Quoted_Lit function; current token is: " << tokenNames[token] << endl;
 	return errors;
@@ -352,17 +350,17 @@ int SyntacticalAnalyzer::more_tokens ()
 		}
 
 		errors += any_other_token();
-		CODE.WriteCode(0, " "); // Drop a space between elements of a list
+		code->WriteCode(0, " "); // Drop a space between elements of a list
 		errors += more_tokens();
 	} else if(token == RPAREN_T){
-		CODE.WriteCode(0, ")"); // End of every listop?
+		code->WriteCode(0, ")"); // End of every listop?
 		parenCount--;
 		p2 << "-- inside more_tokens!\n";
 		/*if (parenCount == 0)
-			CODE.WriteCode(0, "); \n"); // When the parentheses are balanced, we done
+			code->WriteCode(0, "); \n"); // When the parentheses are balanced, we done
 		else {
-			CODE.WriteCode(0, ", \n"); // When the are not balanced, little comma
-			CODE.WriteCode(4, ""); // Big indent
+			code->WriteCode(0, ", \n"); // When the are not balanced, little comma
+			code->WriteCode(4, ""); // Big indent
 		}*/
 
 		p2 << "Using Rule 15\n";
@@ -501,16 +499,16 @@ int SyntacticalAnalyzer::action ()
         }
 
     } else if(token == LISTOP1_T){
-				CODE.WriteCode(0, "listop "); // cons, car, cddr, muah
+				code->WriteCode(0, "listop "); // cons, car, cddr, muah
         p2 << "Using Rule 26\n";
-        CODE.WriteCode(0, "(\"" + lex->GetLexeme() + "\", "); // Format not first listop
+        code->WriteCode(0, "(\"" + lex->GetLexeme() + "\", "); // Format not first listop
         token = lex->GetToken();
         errors += stmt();
 
     } else if(token == LISTOP2_T){
         p2 << "Using Rule 27\n";
-				CODE.WriteCode(1, "__RetVal = "); // We always get a __RetVal
-        CODE.WriteCode(0, lex->GetLexeme() + " ("); // Format first listop
+				code->WriteCode(1, "__RetVal = "); // We always get a __RetVal
+        code->WriteCode(0, lex->GetLexeme() + " ("); // Format first listop
         token = lex->GetToken();
         errors += stmt();
         errors += stmt();
@@ -615,19 +613,19 @@ int SyntacticalAnalyzer::action ()
 
     } else if(token == IDENT_T){
         p2 << "Using Rule 47\n";
-				CODE.WriteCode(0, lex->GetLexeme() + "();\n"); // These are the variables from cout
+				code->WriteCode(0, lex->GetLexeme() + "();\n"); // These are the variables from cout
         token = lex->GetToken();
         errors += stmt_list();
 
     } else if(token == DISPLAY_T){
         p2 << "Using Rule 48\n";
-				CODE.WriteCode(1, "cout << "); // This is when we cout
+				code->WriteCode(1, "cout << "); // This is when we cout
         token = lex->GetToken();
         errors += stmt();
 
     } else if(token == NEWLINE_T){
         p2 << "Using Rule 49\n";
-				CODE.WriteCode(1, "cout << endl;\n"); // This is when we cout a newline
+				code->WriteCode(1, "cout << endl;\n"); // This is when we cout a newline
         token = lex->GetToken();
 
     } else {
@@ -649,7 +647,7 @@ int SyntacticalAnalyzer::any_other_token ()
         p2 << "Using Rule 50\n";
 				parenCount++;
 				p2 << "++ inside any_other_token!\n";
-				CODE.WriteCode(0, lex->GetLexeme());
+				code->WriteCode(0, lex->GetLexeme());
         token = lex->GetToken();
         errors += more_tokens();
 
@@ -661,17 +659,17 @@ int SyntacticalAnalyzer::any_other_token ()
         }
 
     } else if(token == IDENT_T){
-				CODE.WriteCode(0, lex->GetLexeme()); // I think this prints the variables when we are in a statement
+				code->WriteCode(0, lex->GetLexeme()); // I think this prints the variables when we are in a statement
         p2 << "Using Rule 51\n";
         token = lex->GetToken();
 
     } else if(token == NUMLIT_T){
-				CODE.WriteCode(0, lex->GetLexeme()); // I think this prints the variables when we are in a statement
+				code->WriteCode(0, lex->GetLexeme()); // I think this prints the variables when we are in a statement
         p2 << "Using Rule 52\n";
         token = lex->GetToken();
 
     } else if(token == STRLIT_T){
-				CODE.WriteCode(0, lex->GetLexeme()); // I think this prints the variables when we are in a statement
+				code->WriteCode(0, lex->GetLexeme()); // I think this prints the variables when we are in a statement
         p2 << "Using Rule 53\n";
         token = lex->GetToken();
 
@@ -688,7 +686,7 @@ int SyntacticalAnalyzer::any_other_token ()
         token = lex->GetToken();
 
     } else if(token == NEWLINE_T){
-				CODE.WriteCode(1, "cout << endl;\n"); // This is also when we cout a newline
+				code->WriteCode(1, "cout << endl;\n"); // This is also when we cout a newline
 				p2 << "Using Rule 57\n";
         token = lex->GetToken();
 
