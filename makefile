@@ -24,14 +24,14 @@ run : P3.out
 
 
 submit : Project3.cpp LexicalAnalyzer.h SyntacticalAnalyzer.h SyntacticalAnalyzer.cpp makefile README.txt
-	rm -rf TeamNameP3
-	mkdir TeamNameP3
-	cp Project3.cpp TeamNameP3
-	cp SyntacticalAnalyzer.h TeamNameP3
-	cp SyntacticalAnalyzer.cpp TeamNameP3
-	cp CodeGenerator.h TeamNameP3
-	cp CodeGenerator.cpp TeamNameP3
-	cp makefile TeamNameP3
-	cp README.txt TeamNameP3
-	tar cfvz TeamNameP3.tgz TeamNameP3
-	cp TeamNameP3.tgz ~tiawatts/cs460drop
+	rm -rf Team10P3
+	mkdir Team10P3
+	cp Project3.cpp Team10P3
+	cp SyntacticalAnalyzer.h Team10P3
+	cp SyntacticalAnalyzer.cpp Team10P3
+	cp CodeGenerator.h Team10P3
+	cp CodeGenerator.cpp Team10P3
+	cp makefile Team10P3
+	cp README.txt Team10P3
+	tar cfvz Team10P3.tgz Team10P3
+	cp Team10P3.tgz ~tiawatts/cs460drop
