@@ -28,8 +28,8 @@ class SyntacticalAnalyzer
 	int program ();
 	int more_defines ();
 	int define ();
-	int stmt_list ();
-	int stmt ();
+	int stmt_list (bool outerScope);
+	int stmt (bool outerScope);
 	int literal ();
 	int quoted_lit ();
 	int more_tokens ();
@@ -37,7 +37,7 @@ class SyntacticalAnalyzer
 	int else_part ();
 	int stmt_pair ();
 	int stmt_pair_body ();
-	int action ();
+	int action (bool outerScope);
 	int any_other_token ();
   int parenCount; // This is when we're inside a statement that has
                    // nested statements and we want a comma
