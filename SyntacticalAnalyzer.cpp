@@ -417,7 +417,7 @@ int SyntacticalAnalyzer::else_part ()
 		p2 << "Using Rule 18\n";
 		code->WriteCode(indentation, "else {\n");
 		indentation++;
-		errors += stmt(code->Tabs(indentation), "\n", true);
+		errors += stmt(code->Tabs(indentation), ";\n", true);
 		indentation--;
 		code->WriteCode(indentation, "}\n");
 	} else if (token == RPAREN_T){
@@ -462,7 +462,7 @@ int SyntacticalAnalyzer::stmt_pair_body ()
         token = lex->GetToken();
 		code->WriteCode(0, "{\n");
 		indentation++;
-        errors += stmt(code->Tabs(indentation), "\n", true);
+        errors += stmt(code->Tabs(indentation), ";\n", true);
 		indentation--;
 		code->WriteCode(indentation, "}\n");
 
@@ -479,7 +479,7 @@ int SyntacticalAnalyzer::stmt_pair_body ()
         //<stmt_pair_body> -> <stmt> <stmt> RPAREN_T <stmt_pair>
         errors += stmt("if(", "){\n");
 		indentation++;
-        errors += stmt(code->Tabs(indentation), "\n", true);
+        errors += stmt(code->Tabs(indentation), ";\n", true);
 		indentation--;
 		code->WriteCode(indentation, "}\n");
 
@@ -515,7 +515,7 @@ int SyntacticalAnalyzer::action (string prefix, string suffix, bool retVal)
         token = lex->GetToken();
         errors += stmt("if(", "){\n");
 		indentation++;
-        errors += stmt(code->Tabs(indentation),"\n", true);
+        errors += stmt(code->Tabs(indentation),";\n", true);
 		indentation--;
 		code->WriteCode(indentation, "}\n");
         errors += else_part();
