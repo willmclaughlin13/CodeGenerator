@@ -11,6 +11,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <string>
 #include "LexicalAnalyzer.h"
 #include "CodeGenerator.h"
 
@@ -28,8 +29,8 @@ class SyntacticalAnalyzer
 	int program ();
 	int more_defines ();
 	int define ();
-	int stmt_list (bool outerScope);
-	int stmt (bool outerScope);
+	int stmt_list (string prefix = string(), string suffix = string(), bool skipFirst = false);
+	int stmt (string prefix = string(), string suffix = string());
 	int literal ();
 	int quoted_lit ();
 	int more_tokens ();
@@ -37,12 +38,8 @@ class SyntacticalAnalyzer
 	int else_part ();
 	int stmt_pair ();
 	int stmt_pair_body ();
-	int action (bool outerScope);
+	int action (string prefix = string(), string suffix = string());
 	int any_other_token ();
-  int parenCount; // This is when we're inside a statement that has
-                   // nested statements and we want a comma
-  bool closeParen, adding, subtracting, dividing, multiplying, moduloing,
-        equaling, GTing, GTEing, LTing, LTEing, rounding, oneParam;
 	ofstream listing;
 	ofstream p2;
 	ofstream debug;
