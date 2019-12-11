@@ -1,7 +1,7 @@
 /*******************************************************************************
 * File name: SyntacticalAnalyzer.cpp                                           *
 * Project: CS 460 Project 2 Fall 2019                                          *
-* Author(s): Patrick Hernandez, William Melaughlin, Sean Miltenberger          *
+* Author(s): Patrick Hernandez, William Mclaughlin, Sean Miltenberger          *
 * Date: 12/02/19                                                               *
 * Description: This file contains the definitions for the Syntactical Analyzer.*
 *******************************************************************************/
