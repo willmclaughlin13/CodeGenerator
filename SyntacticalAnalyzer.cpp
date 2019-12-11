@@ -1,7 +1,7 @@
 /*******************************************************************************
 * File name: SyntacticalAnalyzer.cpp                                           *
 * Project: CS 460 Project 2 Fall 2019                                          *
-* Author(s): Patrick Hernandez, William Melaughlin, Sean Miltenberger          *
+* Author(s): Patrick Hernandez, William McLaughlin, Sean Miltenberger          *
 * Date: 12/02/19                                                               *
 * Description: This file contains the definitions for the Syntactical Analyzer.*
 *******************************************************************************/
@@ -54,6 +54,7 @@ SyntacticalAnalyzer::SyntacticalAnalyzer (char * filename)
         exit(2);
     }
 
+	indentation = 0;
 	token = lex->GetToken();
 	int totalErrors = program ();
 }
@@ -181,7 +182,8 @@ int SyntacticalAnalyzer::define ()
 
 	errors += param_list(); // get parameters
 	code->WriteCode(0, "{\n"); // Beginning of a new function
-	code->WriteCode(1, "Object __RetVal;\n");
+	indentation++;
+	code->WriteCode(indentation, "Object __RetVal;\n");
 	if(token == RPAREN_T){
 		token = lex->GetToken();
 	} else {
@@ -189,16 +191,17 @@ int SyntacticalAnalyzer::define ()
 		lex->ReportError(") expected, got: " + tokenNames[token]);
 	}
 
-	errors += stmt("__RetVal = ", ";\n");
+	errors += stmt(code->Tabs(indentation), ";\n", true);
 
 	// This is at the end of a statement line.
-	errors += stmt_list("__RetVal = ", ";\n");
+	errors += stmt_list(code->Tabs(indentation), ";\n", false, true);
 
 	if(token == RPAREN_T){
 		if (mainFunc)
-			code->WriteCode(1, "return 0;\n"); // When it's main, we return int
+			code->WriteCode(indentation, "return 0;\n"); // When it's main, we return int
 		else
-        	code->WriteCode(1, "return __RetVal;\n"); // Otherwise, return __RetVal
+        	code->WriteCode(indentation, "return __RetVal;\n"); // Otherwise, return __RetVal
+		indentation--;
         code->WriteCode(0, "}\n\n"); // Close function
 		token = lex->GetToken();
 	} else {
@@ -210,7 +213,7 @@ int SyntacticalAnalyzer::define ()
 	return errors;
 }
 
-int SyntacticalAnalyzer::stmt_list (string prefix, string suffix, bool skipFirst)
+int SyntacticalAnalyzer::stmt_list (string prefix, string suffix, bool skipFirst, bool retVal)
 {
     p2 << "Entering Stmt_List function; current token is: " << tokenNames[token] << ", lexeme: " << lex->GetLexeme() << endl;;
 	int errors = 0;
@@ -236,27 +239,30 @@ int SyntacticalAnalyzer::stmt_list (string prefix, string suffix, bool skipFirst
 	return errors;
 }
 
-int SyntacticalAnalyzer::stmt (string prefix, string suffix)
+int SyntacticalAnalyzer::stmt (string prefix, string suffix, bool retVal)
 {
     p2 << "Entering Stmt function; current token is: " << tokenNames[token] << ", lexeme: " << lex->GetLexeme() << endl;;
 	int errors = 0;
 
-	if(prefix != "__RetVal = ")
-		code->WriteCode(0, prefix);
+	code->WriteCode(0, prefix);
 
     if(token == IDENT_T){
 		p2 << "Using Rule 8\n";
+		if(retVal)
+			code->WriteCode(0, "__RetVal = ");
 		code->WriteCode(0, lex->GetLexeme());
 		token = lex->GetToken();
 	} else if(token == SQUOTE_T || token == NUMLIT_T || token == STRLIT_T){
 		p2 << "Using Rule 7\n";
+		if(retVal)
+			code->WriteCode(0, "__RetVal = ");
 		errors += literal();
 
 	} else if(token == LPAREN_T){
 		p2 << "Using Rule 9\n";
 		token = lex->GetToken();
 
-		errors += action(prefix);
+		errors += action(prefix, "", retVal);
 		if(token == RPAREN_T){
 			token = lex->GetToken();
 
@@ -283,17 +289,17 @@ int SyntacticalAnalyzer::literal ()
 
 
 	if(token == NUMLIT_T){
-		code->WriteCode(0, " Object(" + lex->GetLexeme() + ") "); // numberino
+		code->WriteCode(0, "Object(" + lex->GetLexeme() + ") "); // numberino
 		p2 << "Using Rule 10\n";
 		token = lex->GetToken();
 	}
 	else if(token == STRLIT_T){
-		code->WriteCode(0, " Object(\"" + lex->GetLexeme() + "\") "); // string
+		code->WriteCode(0, "Object(" + lex->GetLexeme() + ") "); // string
 		p2 << "Using Rule 11\n";
 		token = lex->GetToken();
 	}
 	else if(token == SQUOTE_T){
-		code->WriteCode(0, " Object(");
+		code->WriteCode(0, "Object(");
 		p2 << "Using Rule 12\n";
 		token = lex->GetToken();
 		errors += quoted_lit();
@@ -409,7 +415,11 @@ int SyntacticalAnalyzer::else_part ()
 	if(token == IDENT_T || token == LPAREN_T || token == NUMLIT_T ||
 	token == STRLIT_T || token == SQUOTE_T){
 		p2 << "Using Rule 18\n";
-		errors += stmt();
+		code->WriteCode(indentation, "else {\n");
+		indentation++;
+		errors += stmt(code->Tabs(indentation), "\n", true);
+		indentation--;
+		code->WriteCode(indentation, "}\n");
 	} else if (token == RPAREN_T){
 		p2 << "Using Rule 19\n";
 	} else {
@@ -428,6 +438,7 @@ int SyntacticalAnalyzer::stmt_pair ()
     if (token == LPAREN_T){
         p2 << "Using Rule 20\n";
         token = lex->GetToken();
+		code->WriteCode(indentation, "else ");
         errors += stmt_pair_body();
     } else if (token == RPAREN_T){ // Lamda
         p2 << "Using Rule 21\n";
@@ -449,8 +460,11 @@ int SyntacticalAnalyzer::stmt_pair_body ()
         //<stmt_pair_body> -> ELSE_T <stmt> RPAREN_T
 		p2 << "Using Rule 23\n";
         token = lex->GetToken();
-
-        errors += stmt();
+		code->WriteCode(0, "{\n");
+		indentation++;
+        errors += stmt(code->Tabs(indentation), "\n", true);
+		indentation--;
+		code->WriteCode(indentation, "}\n");
 
         if(token == RPAREN_T){
 		    token = lex->GetToken();
@@ -463,8 +477,11 @@ int SyntacticalAnalyzer::stmt_pair_body ()
     token == STRLIT_T || token == SQUOTE_T){
         p2 << "Using Rule 22\n";
         //<stmt_pair_body> -> <stmt> <stmt> RPAREN_T <stmt_pair>
-        errors += stmt();
-        errors += stmt();
+        errors += stmt("if(", "){\n");
+		indentation++;
+        errors += stmt(code->Tabs(indentation), "\n", true);
+		indentation--;
+		code->WriteCode(indentation, "}\n");
 
         if(token == RPAREN_T){
 		    token = lex->GetToken();
@@ -483,20 +500,24 @@ int SyntacticalAnalyzer::stmt_pair_body ()
 }
 
 
-int SyntacticalAnalyzer::action (string prefix, string suffix)
+int SyntacticalAnalyzer::action (string prefix, string suffix, bool retVal)
 {
     p2 << "Entering Action function; current token is: " << tokenNames[token] << ", lexeme: " << lex->GetLexeme() << endl;;
 	int errors = 0;
 
 
-	if(token != NEWLINE_T && token != DISPLAY_T && prefix == "__RetVal = ")
-		code->WriteCode(1, prefix);
+	if(token != NEWLINE_T && token != DISPLAY_T &&
+	 	token != IF_T && token != COND_T && retVal)
+		code->WriteCode(0, "__RetVal = ");
 
     if(token == IF_T) {
 		p2 << "Using Rule 24\n";
         token = lex->GetToken();
-        errors += stmt();
-        errors += stmt();
+        errors += stmt("if(", "){\n");
+		indentation++;
+        errors += stmt(code->Tabs(indentation),"\n", true);
+		indentation--;
+		code->WriteCode(indentation, "}\n");
         errors += else_part();
 
     } else if(token == COND_T) {
@@ -659,14 +680,14 @@ int SyntacticalAnalyzer::action (string prefix, string suffix)
 
     } else if(token == DISPLAY_T){
         p2 << "Using Rule 48\n";
-				code->WriteCode(1, "cout << "); // This is when we cout
+				code->WriteCode(0, "cout << "); // This is when we cout
         token = lex->GetToken();
         errors += stmt();
 				//code->WriteCode(0, ")");
 
     } else if(token == NEWLINE_T){
         p2 << "Using Rule 49\n";
-				code->WriteCode(1, "cout << endl"); // This is when we cout a newline
+				code->WriteCode(0, "cout << endl"); // This is when we cout a newline
         token = lex->GetToken();
 
     } else {

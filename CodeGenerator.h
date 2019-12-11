@@ -18,6 +18,7 @@ public:
     CodeGen (string filename);
     ~CodeGen ();
     void WriteCode (int tabs, string code);
+    string Tabs(int tabs);
 private:
     ofstream cpp;
 };

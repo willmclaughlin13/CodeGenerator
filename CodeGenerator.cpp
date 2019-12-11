@@ -35,3 +35,10 @@ void CodeGen::WriteCode (int tabs, string code)
         cpp << '\t';
     cpp << code;
 }
+
+string CodeGen::Tabs (int tabs){
+    string tabsStr = string();
+    for(int i = 0; i < tabs; ++i)
+        tabsStr += '\t';
+    return tabsStr;
+}
