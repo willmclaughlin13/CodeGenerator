@@ -408,6 +408,11 @@ int SyntacticalAnalyzer::else_part ()
 
 	if(token == IDENT_T || token == LPAREN_T || token == NUMLIT_T ||
 	token == STRLIT_T || token == SQUOTE_T){
+		code->WriteCode(0, ";\n");
+		code->WriteCode(1, "}\n");
+		code->WriteCode(1, "else\n");
+		code->WriteCode(1, "{\n");
+		code->WriteCode(1, "");
 		p2 << "Using Rule 18\n";
 		errors += stmt();
 	} else if (token == RPAREN_T){
@@ -463,11 +468,23 @@ int SyntacticalAnalyzer::stmt_pair_body ()
     token == STRLIT_T || token == SQUOTE_T){
         p2 << "Using Rule 22\n";
         //<stmt_pair_body> -> <stmt> <stmt> RPAREN_T <stmt_pair>
-        errors += stmt();
-        errors += stmt();
 
-        if(token == RPAREN_T){
+
+        errors += stmt();
+				code->WriteCode(0, ")\n");
+				code->WriteCode(1, "{\n");
+				code->WriteCode(1, "");
+        errors += stmt();
+				code->WriteCode(0, ";\n");
+				code->WriteCode(1, "}\n");
+
+				if(token == RPAREN_T){
 		    token = lex->GetToken();
+					if (token == LPAREN_T) {
+						code->WriteCode(1, "else");
+						code->WriteCode(1, "if(");
+					}
+
         } else {
             errors++;
             lex->ReportError(") expected");
@@ -478,6 +495,7 @@ int SyntacticalAnalyzer::stmt_pair_body ()
 		errors++;
 		lex->ReportError("Else, Ident, (, Numlit, Strlit, or ` expected, got: " + tokenNames[token]);
 	}
+
 	p2 << "Exiting Stmt_Pair_Body function; current token is: " << tokenNames[token] << endl;
     return errors;
 }
@@ -489,20 +507,26 @@ int SyntacticalAnalyzer::action (string prefix, string suffix)
 	int errors = 0;
 
 
-	if(token != NEWLINE_T && token != DISPLAY_T && prefix == "__RetVal = ")
+	if(token != NEWLINE_T && token != DISPLAY_T && token != IF_T && token != COND_T && prefix == "__RetVal = ")
 		code->WriteCode(1, prefix);
 
     if(token == IF_T) {
 		p2 << "Using Rule 24\n";
+				code->WriteCode(1, "if (");
         token = lex->GetToken();
         errors += stmt();
+				code->WriteCode(0, ")\n");
+				code->WriteCode(1, "{\n");
+				code->WriteCode(1, "");
         errors += stmt();
         errors += else_part();
+				code->WriteCode(0, ";\n");
+				code->WriteCode(1, "}\n");
 
     } else if(token == COND_T) {
         p2 << "Using Rule 25\n";
         token = lex->GetToken();
-
+				code->WriteCode(1, "if (");
         if (token == LPAREN_T) {
             token = lex->GetToken();
             errors += stmt_pair_body();
@@ -510,6 +534,9 @@ int SyntacticalAnalyzer::action (string prefix, string suffix)
             errors++;
             lex->ReportError("( expected");
         }
+
+				code->WriteCode(0, ";\n");
+				//code->WriteCode(1, "}\n");
 
     } else if(token == LISTOP1_T){
 				//code->WriteCode(0, "listop "); // cons, car, cddr, muah
